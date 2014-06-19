@@ -3,21 +3,19 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.text import capfirst
-from django.utils.translation import ugettext_lazy as _
 from django.contrib import messages
-
+from django.views.decorators.cache import never_cache
 from dbsettings import loading, forms
 
-
-@staff_member_required
+@never_cache
 def app_settings(request, app_label, template='dbsettings/app_settings.html'):
     # Determine what set of settings this editor is used for
     if app_label is None:
         settings = loading.get_all_settings()
-        title = _('Site settings')
+        title = 'Site settings'
     else:
         settings = loading.get_app_settings(app_label)
-        title = _('%(app)s settings') % {'app': capfirst(app_label)}
+        title = '%s settings' % capfirst(app_label)
 
     # Create an editor customized for the current user
     editor = forms.customized_editor(request.user, settings)
@@ -29,7 +27,7 @@ def app_settings(request, app_label, template='dbsettings/app_settings.html'):
             form.full_clean()
 
             for name, value in form.cleaned_data.items():
-                key = forms.RE_FIELD_NAME.match(name).groups()
+                key = forms.re_field_name.match(name).groups()
                 setting = loading.get_setting(*key)
                 try:
                     storage = loading.get_setting_storage(*key)
@@ -46,9 +44,8 @@ def app_settings(request, app_label, template='dbsettings/app_settings.html'):
                         location = setting.class_name
                     else:
                         location = setting.module_name
-                    update_msg = (_(u'Updated %(desc)s on %(location)s') %
-                                  {'desc': unicode(setting.description), 'location': location})
-                    messages.add_message(request, messages.INFO, update_msg)
+                    update_msg = u'Updated %s on %s' % (unicode(setting.description), location)
+                    messages.add_message(request, messages.INFO, update_msg )
 
             return HttpResponseRedirect(request.path)
     else:
@@ -59,9 +56,10 @@ def app_settings(request, app_label, template='dbsettings/app_settings.html'):
         'title': title,
         'form': form,
     }, context_instance=RequestContext(request))
-
+app_settings = staff_member_required(app_settings)
 
 # Site-wide setting editor is identical, but without an app_label
+@never_cache
 def site_settings(request):
     return app_settings(request, app_label=None, template='dbsettings/site_settings.html')
 # staff_member_required is implied, since it calls app_settings

@@ -1,17 +1,22 @@
 {% extends "admin/base_site.html" %}
-{% load i18n adminmedia %}
+{% load i18n admin_modify %}
+{% load admin_static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% admin_media_prefix %}css/forms.css" />{% endblock %}
+{% block extrahead %}{{ block.super }}
+{{ media }}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" type="text/css" href="{% static 'css/forms.css' %}" />{% endblock %}
 
 {% block coltype %}colMS{% endblock %}
 {% block bodyclass %}dbsettings{% endblock %}
+{% block userlinks %}<a href="/admin/doc/">{% trans 'Documentation' %}</a> / <a href="/admin/password_change/">{% trans 'Change password' %}</a> / <a href="/admin/logout/">{% trans 'Log out' %}</a>{% endblock %}
 {% block breadcrumbs %}{% if not is_popup %}
 <div class="breadcrumbs">
-    <a href="{% url admin:index %}">{% trans "Home" %}</a> &rsaquo;
+     <a href="/admin/">{% trans "Home" %}</a> &rsaquo;
     {% trans "Edit Settings" %}
 </div>
 {% endif %}{% endblock %}
-
 {% block content %}
 <div id="content-main">
 {% if form.errors %}
@@ -22,17 +27,35 @@
 {% if form.fields %}
 {% regroup form by module_name as modules %}
 <form enctype="multipart/form-data" method="post">
+    {{ form.media }}
     {% for module in modules %}
         <div class="module">
             <table summary="{% filter capfirst %}{% blocktrans with module.grouper as name %}Models available in the {{ name }} application.{% endblocktrans %}{% endfilter %}" width="100%">
-            <caption>{% filter capfirst %}{{ module.grouper }}{% endfilter %}</caption>
+			<caption>{% filter capfirst %}{% blocktrans with module.grouper as name %}{{ name }}{% endblocktrans %}{% endfilter %}</caption>
             {% regroup module.list by class_name as classes %}
             {% for class in classes %}
+				{% if class.grouper %}
                 <tr class="alt">
-                    <th>{% filter capfirst %}{% if class.grouper %}{{ class.grouper }}{% else %}{% trans "Application settings" %}{% endif %}{% endfilter %}</th>
+						<th>{% filter capfirst %}{% blocktrans with class.grouper as name %}{{ name }}{% endblocktrans %}{% endfilter %}</th>
                     <th>&nbsp;</th>
                 </tr>
-                {% include "dbsettings/values.html" %}
+				{% endif %}
+				{% for field in class.list %}
+					{% if field.errors %}
+					<tr class="error">
+						<td colspan="2">{{ field.errors }}</td>
+					</tr>
+					{% endif %}
+					<tr{% if field.errors %} class="error"{% endif %}>
+						<td>
+							{{ field.label_tag }}
+							{% if field.help_text %}
+								<p class="help">{{ field.help_text|escape }}</p>
+							{% endif %}
+						</td>
+						<td>{{ field }}</td>
+					</tr>
+				{% endfor %}
             {% endfor %}
             </table>
         </div>

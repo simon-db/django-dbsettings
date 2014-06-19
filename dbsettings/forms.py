@@ -7,9 +7,7 @@ from django.utils.text import capfirst
 
 from dbsettings.loading import get_setting_storage
 
-
-RE_FIELD_NAME = re.compile(r'^(.+)__(.*)__(.+)$')
-
+re_field_name = re.compile(r'^(.+)__(.*)__(.+)$')
 
 class SettingsEditor(forms.BaseForm):
     "Base editor, from which customized forms are created"
@@ -25,9 +23,9 @@ class SettingsEditor(forms.BaseForm):
     def specialize(self, field):
         "Wrapper to add module_name and class_name for regrouping"
         field.label = capfirst(field.label)
-        module_name, class_name, _ = RE_FIELD_NAME.match(field.name).groups()
+        module_name, class_name, x = re_field_name.match(field.name).groups()
 
-        app_label = module_name.split('.')[-2]
+        app_label = module_name.split('.')[-2];
         field.module_name = app_label
 
         if class_name:
@@ -35,15 +33,12 @@ class SettingsEditor(forms.BaseForm):
             if model:
                 class_name = model._meta.verbose_name
         field.class_name = class_name
-        field.verbose_name = self.verbose_names[field.name]
 
         return field
-
 
 def customized_editor(user, settings):
     "Customize the setting editor based on the current user and setting list"
     base_fields = SortedDict()
-    verbose_names = {}
     for setting in settings:
         perm = '%s.can_edit_%s_settings' % (
             setting.module_name.split('.')[-2],
@@ -58,14 +53,14 @@ def customized_editor(user, settings):
                 # Provide current setting values for initializing the form
                 'initial': setting.to_editor(storage.value),
                 'required': setting.required,
-                'widget': setting.widget,
             }
             if setting.choices:
                 field = forms.ChoiceField(choices=setting.choices, **kwargs)
             else:
                 field = setting.field(**kwargs)
-            key = '%s__%s__%s' % setting.key
-            base_fields[key] = field
-            verbose_names[key] = setting.verbose_name
-    attrs = {'base_fields': base_fields, 'verbose_names': verbose_names}
-    return type('SettingsEditor', (SettingsEditor,), attrs)
+            base_fields['%s__%s__%s' % setting.key] = field
+    return type('SettingsEditor', (SettingsEditor,), {'base_fields': base_fields})
+
+def get_initial_values(user, settings):
+    "Returns initial values for the form"
+    pass
