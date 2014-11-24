@@ -15,7 +15,7 @@ class Setting(models.Model):
 @receiver(post_save)
 def clear_cache(sender, **kwargs):
     from django.core.cache import cache
-    if sender == SettingManager or sender == Setting:
+    if sender == Setting:
         try:
             cache.clear()
         except:
