@@ -51,7 +51,7 @@ def get_setting_storage(module_name, class_name, attribute_name):
 
 def register_setting(setting):
     if setting not in _settings:
-        _settings.insert(bisect(list(_settings), setting), setting.key, setting)
+        _settings.update({setting.key: setting})
     else:
         _settings[setting.key] = setting
 
